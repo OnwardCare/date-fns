@@ -652,6 +652,48 @@ describe("format", () => {
     });
   });
 
+  it("Local time zone name as text", () => {
+    const systemTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const result = format(date, "z zz zzz zzzz", { in: tz(systemTimeZone) });
+    let timeZoneNameLong = new Intl.DateTimeFormat("en", {
+      timeZoneName: "long",
+      timeZone: systemTimeZone,
+    })
+      .formatToParts(date)
+      .find((part) => part.type === "timeZoneName")?.value;
+
+    const timeZoneNameShort = new Intl.DateTimeFormat("en", {
+      timeZoneName: "short",
+      timeZone: systemTimeZone,
+    })
+      .formatToParts(date)
+      .find((part) => part.type === "timeZoneName")?.value;
+
+    if (timeZoneNameLong === "GMT") {
+      timeZoneNameLong = timezoneGMT;
+    }
+
+    if (timeZoneNameShort === "GMT") {
+      const expectedResult = [
+        timezoneGMTShort,
+        timezoneGMTShort,
+        timezoneGMTShort,
+        timeZoneNameLong,
+      ].join(" ");
+
+      expect(result).toBe(expectedResult);
+    } else {
+      const expectedResult = [
+        timeZoneNameShort,
+        timeZoneNameShort,
+        timeZoneNameShort,
+        timeZoneNameLong,
+      ].join(" ");
+
+      expect(result).toBe(expectedResult);
+    }
+  });
+
   describe("timestamp", () => {
     it("seconds timestamp", () => {
       const result = format(date, "t");

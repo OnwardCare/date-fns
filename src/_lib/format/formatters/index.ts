@@ -3,7 +3,12 @@ import { getISOWeek } from "../../../getISOWeek/index.js";
 import { getISOWeekYear } from "../../../getISOWeekYear/index.js";
 import { getWeek } from "../../../getWeek/index.js";
 import { getWeekYear } from "../../../getWeekYear/index.js";
-import type { LocaleDayPeriod, Localize } from "../../../locale/types.js";
+import { getDefaultOptions } from "../../defaultOptions/index.js";
+import type {
+  Locale,
+  LocaleDayPeriod,
+  Localize,
+} from "../../../locale/types.js";
 import type {
   Day,
   Era,
@@ -32,7 +37,7 @@ type Formatter = (
   token: string,
   localize: Localize,
   options: Required<
-    LocalizedOptions<"options"> & WeekOptions & FirstWeekContainsDateOptions
+    LocalizedOptions<"options" | "code"> & WeekOptions & FirstWeekContainsDateOptions
   >,
 ) => string;
 
@@ -738,19 +743,32 @@ export const formatters: { [token: string]: Formatter } = {
   },
 
   // Timezone (specific non-location)
-  z: function (date, token, _localize) {
-    const timezoneOffset = date.getTimezoneOffset();
+  z: function (date, token, _localize, formatterOptions) {
+    const locale = formatterOptions.locale;
 
     switch (token) {
       // Short
       case "z":
       case "zz":
-      case "zzz":
-        return "GMT" + formatTimezoneShort(timezoneOffset, ":");
+      case "zzz": {
+        let timezone = getLocalIntlTimeZoneName("short", date, locale);
+
+        if (!timezone || timezone === "GMT") {
+          timezone = "GMT" + formatTimezoneShort(date.getTimezoneOffset(), ":");
+        }
+        return timezone;
+      }
       // Long
       case "zzzz":
-      default:
-        return "GMT" + formatTimezone(timezoneOffset, ":");
+      default: {
+        let timezone = getLocalIntlTimeZoneName("long", date, locale);
+
+        if (!timezone || timezone === "GMT") {
+          timezone = "GMT" + formatTimezone(date.getTimezoneOffset(), ":");
+        }
+
+        return timezone;
+      }
     }
   },
 
@@ -765,6 +783,35 @@ export const formatters: { [token: string]: Formatter } = {
     return addLeadingZeros(+date, token.length);
   },
 };
+
+function getLocalIntlTimeZoneName(
+  length: Intl.DateTimeFormatOptions["timeZoneName"],
+  date: Date,
+  locale: Pick<Locale, "code">,
+): string | undefined {
+  const defaultOptions = getDefaultOptions();
+  const givenLocale = locale ?? defaultOptions.locale;
+
+  // Only if date is TZDate or TZDateMini
+  // @ts-ignore
+  const timeZone = date.timeZone;
+
+  if (timeZone) {
+    // If a locale has been provided `en-US` is used as a fallback in case it is an
+    // invalid locale, otherwise the locale is left undefined to use the system locale.
+    const dtf = new Intl.DateTimeFormat(
+      givenLocale ? [givenLocale.code, "en-US"] : undefined,
+      {
+        // @ts-ignore
+        timeZone,
+        timeZoneName: length,
+      },
+    );
+
+    return dtf.formatToParts(date).find((part) => part.type === "timeZoneName")
+      ?.value;
+  }
+}
 
 function formatTimezoneShort(offset: number, delimiter: string = ""): string {
   const sign = offset > 0 ? "-" : "+";

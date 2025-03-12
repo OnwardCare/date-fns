@@ -52,7 +52,7 @@ export type { FormatOptions as FormatDateOptions };
  * The {@link format} function options.
  */
 export interface FormatOptions
-  extends LocalizedOptions<"options" | "localize" | "formatLong">,
+  extends LocalizedOptions<"options" | "localize" | "formatLong" | "code">,
     WeekOptions,
     FirstWeekContainsDateOptions,
     AdditionalTokensOptions,
