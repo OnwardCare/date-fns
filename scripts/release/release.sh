@@ -15,7 +15,7 @@ else
 fi
 
 # Write version & commit package.json
-./scripts/release/writeVersion.js
+# ./scripts/release/writeVersion.js
 git add package.json
 git commit -m "Prepare $VERSION"
 git tag -a "$VERSION" -m "$VERSION"
